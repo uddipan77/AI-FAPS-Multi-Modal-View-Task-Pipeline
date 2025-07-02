@@ -1,0 +1,55 @@
+# Example config for your new MultiTaskModule
+_target_: src.models.multitask_concat.MultiTaskModule
+
+modal_nets:
+  images:
+    _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper #src.models.components.dino_v2_wrapper.DinoV2Wrapper #src.models.components.torchvision_wrapper.TorchVisionWrapper
+    model_name: efficientnet_b3 #dinov2_vitl14_reg #efficientnet_b3
+    weights: DEFAULT
+    unfreeze_layer_count: 91
+    #dropout: 0.2
+
+  forces:
+    _target_: tsai.models.ResCNN.ResCNN #ResCNN.ResCNN #XResNet1d.xresnet1d50_deep #InceptionTimePlus.InceptionTimePlus  #InceptionTime.InceptionTime
+    c_in: 5
+    c_out: 64  #if we change this then self.fused_feature_dim = 1000 + c_out, so we would need to change that as well
+    #hidden_size: 218 #for gru
+    #n_layers: 2      #for gru
+    #rnn_dropout: 0.15278903563688415     #for gru
+    #bidirectional: false                 #for gru
+    #fc_dropout: 0.0035177397925138126    #for gru
+
+
+    #nf: 32             #for inception time and inceptiontimeplus
+    #depth: 10         #for inception time and inceptiontimeplus
+    #bottleneck: True   #for inception time and inceptiontimeplus
+    coord: True        #for rescnn
+    separable: False    #for rescnn
+    zero_norm: True   #for rescnn
+    
+
+
+
+fusion_type: attention
+num_classes: 2
+
+# weighting for each task
+alpha_classification: 0.9
+alpha_regression: 1.0
+
+weight_f1: 0.38712304294406436
+weight_r2: 0.6  
+
+optimizer_cfg:
+  _target_: torch.optim.Adam
+  _partial_: true  ## ensures Hydra won't call AdamW(...) now but it will be called in my class during runtime
+  lr: 0.000974220510223384  #0.0017978167203413753  #0.0017978167203413753  
+  weight_decay: 8.460585475420308e-08  #0.0009377397108070718  #1.2008655242742152e-09
+
+scheduler_cfg:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.6972605281274977 #0.30328036943732606 #0.8358284602577417 
+  patience: 8
+  

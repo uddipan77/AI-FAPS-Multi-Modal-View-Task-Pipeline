@@ -1,0 +1,20 @@
+_target_: src.models.regression_module.ResCNNRegressionModel
+
+input_dim: 5
+output_dim: 1
+coord: true
+separable: true
+zero_norm: false
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.009889521176180244   #0.002816124579020563
+  weight_decay: 0.0009377397108070718   #8.116238816036505e-05
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.30328036943732606   #0.23844824538815831
+  patience: 3

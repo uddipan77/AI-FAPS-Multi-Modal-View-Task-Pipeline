@@ -1,0 +1,95 @@
+# @package _global_
+
+# To execute this experiment run:
+# python train.py experiment=mm_dino_resnet_image_force
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from default configurations set above
+# This allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "mm_dino_resnet", "image", "dino_v2_large", "force", "ResBlock", "batch2"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 200  # Averaged between DINOv2 (150) and ResNet (250)
+  gradient_clip_val: 0.275  # Averaged between DINOv2 (0.5) and ResNet (0.05)
+
+model:
+
+  optimizer:
+    lr: 0.00025  # Averaged between DINOv2's lr=0.0005 and ResNet's lr=0.000001
+    weight_decay: 0.000055  # Averaged between DINOv2's wd=0.0001 and ResNet's wd=0.000001
+
+  scheduler:
+    factor: 0.1  # Both DINOv2 and ResNet use factor=0.1
+    patience: 9  # Averaged between DINOv2's patience=10 and ResNet's patience=8
+
+  use_modalities:
+    - images
+    - forces
+
+  modal_nets:
+    images:
+      _target_: src.models.components.dino_v2_wrapper.DinoV2Wrapper
+      model_name: dinov2_vitl14_reg  # As per your DINOv2 configuration
+      unfreeze_layer_count: 5
+
+    forces:
+      _target_: tsai.models.ResNet.ResNet  # Using ResNet
+      c_in: 1
+      c_out: 2  # As specified in ResNet YAML
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 322, 322]  # From DINOv2 YAML
+    forces:
+      type: list
+      length: 5
+      shape: [1, 1, 11524]  # From ResNet YAML
+
+data:
+  batch_size: 8  # As per both configurations
+
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.Resize
+        size: 322  # From DINOv2's transform
+      - _target_: torchvision.transforms.CenterCrop
+        size: 322  # From DINOv2's transform
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048  # Averaged std from DINOv2 (0.05) and ResNet (assumed negligible change)
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19  # Averaged kernel size between DINOv2 (21) and ResNet (19)
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"
+  aim:
+    experiment: "mm_dino_resnet_image_force"

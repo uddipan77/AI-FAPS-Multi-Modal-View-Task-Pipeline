@@ -1,0 +1,12 @@
+_target_: src.data.regression_datamodule.CoilDataModule
+data_dir: /home/hpc/iwfa/iwfa110h/Uddipan/AI-FAPS_Vishnudev_Krishnadas/data/LinearWinding/dataset_linear_winding_multimodal
+subset: train_val
+csv_file_path: /home/hpc/iwfa/iwfa110h/Uddipan/AI-FAPS_Vishnudev_Krishnadas/data/LinearWinding/dataset_linear_winding_multimodal/train_val/labels_and_metadata_coil_level_train_val_2023-09-15.CSV
+test_subset: test
+test_csv_file_path: /home/hpc/iwfa/iwfa110h/Uddipan/AI-FAPS_Vishnudev_Krishnadas/data/LinearWinding/dataset_linear_winding_multimodal/test/labels_and_metadata_coil_level_test_2023-09-15.CSV
+batch_size: 8
+val_split: 0.2
+material_batch: 1
+downsample_factor: 4
+num_layers: 5
+augment_times: 1

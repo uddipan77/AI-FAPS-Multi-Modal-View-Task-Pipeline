@@ -1,0 +1,3 @@
+lr_monitor:
+  _target_: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+  logging_interval: step

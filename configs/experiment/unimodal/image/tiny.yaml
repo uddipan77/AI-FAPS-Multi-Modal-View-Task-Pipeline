@@ -1,0 +1,60 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=mm_tiny_image
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "mm_tiny", "image", "simple_convnet"]
+
+seed: 42
+
+trainer:
+  min_epochs: 10
+  max_epochs: 20
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.002
+  
+  use_modalities:
+    - images
+  
+  modal_nets:
+    images:
+      input_size: 224
+      dummy_input_size: [3, 224, 224]
+      hidden_channels:
+        - 8
+        - 16
+        - 32
+      kernel_size: 3
+      stride: 1
+      padding: 1
+      pool_kernel_size: 2
+      pool_stride: 2
+      dropout_p: 0.3
+      use_batchnorm: True
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 320, 320]
+
+data:
+  batch_size: 4
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

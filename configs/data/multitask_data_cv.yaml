@@ -1,0 +1,70 @@
+# File: data/multitask_multimodal.yaml
+
+_target_: src.data.multitask_datamodule_cv.MultiTaskDataModule
+
+data_dir: ${paths.data_dir}LinearWinding/dataset_linear_winding_multimodal
+
+csv_filename_trainval: labels_and_metadata_coil_level_train_val_2023-09-15.CSV
+csv_filename_test: labels_and_metadata_coil_level_test_2023-09-15.CSV
+
+coil_images_indices:
+  - 957
+  - 958
+  - 959
+  - 960
+
+coil_force_column: force
+class_label_column: label_geom_error_overall
+regression_label_column: label_dc_resistance
+
+batch_size: 8
+val_split: 0.2
+num_workers: 4
+
+downsample_factor: 4
+num_force_layers: 5
+force_augment: True
+force_augment_times: 1
+force_noise_magnitude: 0.01
+material_batch: 1
+
+# Use the same transforms from linear_winding.yaml in your training pipeline
+image_transform_train:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 320
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: kornia.augmentation.RandomGaussianNoise
+      mean: 0.0
+      std: 0.1
+      same_on_batch: True
+      keepdim: True
+    - _target_: torchvision.transforms.RandomApply
+      p: 0.5
+      transforms:
+        - _target_: torchvision.transforms.GaussianBlur
+          kernel_size: 19
+    - _target_: torchvision.transforms.Normalize
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]
+
+image_transform_val:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 320
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: torchvision.transforms.Normalize
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]
+
+image_transform_test:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 320
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: torchvision.transforms.Normalize
+      mean: [0.5, 0.5, 0.5]
+      std: [0.5, 0.5, 0.5]

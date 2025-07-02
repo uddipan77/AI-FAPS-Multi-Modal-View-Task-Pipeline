@@ -1,0 +1,64 @@
+# @package _global_
+
+# Run this experiment with:
+# python src/train.py experiment=unimodal/force/xcm
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "xcm", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.00001
+    weight_decay: 1e-6
+
+  scheduler:
+    factor: 0.01
+    patience: 10
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: tsai.models.XCM.XCM
+      c_in: 1               # Number of input channels
+      c_out: 2              # Number of output classes
+      seq_len: 11524        # Length of the input sequence
+      nf: 128               # Number of filters
+      window_perc: 1.0      # Percentage of sequence length for the window size
+      flatten: False        # Whether to flatten output before fully connected layer
+      custom_head: null     # Custom head function (optional)
+      concat_pool: False    # Whether to use concatenated pooling in the output head
+      fc_dropout: 0.0       # Dropout rate for fully connected layers
+      bn: False             # Whether to apply batch normalization
+      y_range: null         # Tuple for output range (for regression)
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

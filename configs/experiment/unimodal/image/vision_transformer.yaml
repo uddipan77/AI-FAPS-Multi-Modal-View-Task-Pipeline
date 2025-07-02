@@ -1,0 +1,82 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=mm_transformer_image
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "image", "transformer"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+  optimizer:
+    lr: 0.0013
+    weight_decay: 0.00001
+
+  scheduler:
+    factor: 0.1
+
+  use_modalities:
+    - images
+  
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper
+      model_name: vit_b_16
+      weights: DEFAULT
+      unfreeze_layer_count: 4
+      # Removed drop_rate as it's not supported by Vision Transformer
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 224, 224] # Adjusted to 224x224 for Vision Transformer
+
+data:
+  batch_size: 32
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.Resize
+        size: 224 # Updated to match Vision Transformer input size
+      - _target_: torchvision.transforms.CenterCrop
+        size: 224 # Updated to match Vision Transformer input size
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

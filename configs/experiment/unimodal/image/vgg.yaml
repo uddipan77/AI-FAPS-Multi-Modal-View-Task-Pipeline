@@ -1,0 +1,81 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=mm_vgg_image
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "image", "vgg"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.0005
+    weight_decay: 0.00001
+
+  scheduler:
+    factor: 0.1
+
+  use_modalities:
+    - images
+  
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper
+      model_name: vgg16
+      weights: DEFAULT
+      unfreeze_layer_count: 5
+      # Removed drop_rate as it's not supported by VGG model
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 320, 320]
+
+data:
+  batch_size: 32
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

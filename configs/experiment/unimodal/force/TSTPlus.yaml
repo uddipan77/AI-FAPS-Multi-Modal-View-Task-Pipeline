@@ -1,0 +1,67 @@
+# @package _global_
+
+# To execute this experiment, run:
+# python src/train.py experiment=unimodal/force/tstplus
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from default configurations set above
+# This allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "tstplus", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+  optimizer:
+    lr: 0.0001
+    weight_decay: 0.00001
+
+  scheduler:
+    factor: 0.1
+    patience: 4
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: tsai.models.TSTPlus.TSTPlus
+      c_in: 1                   # Number of input channels/features
+      c_out: 16 #16                 # Number of output classes
+      seq_len: 11524            # Length of the input sequence
+      max_seq_len: 512          # Maximum sequence length for the model
+      n_layers: 4 #3               # Number of transformer layers
+      d_model: 256 #128              # Dimension of the model
+      n_heads: 32 #16               # Number of attention heads
+      d_ff: 512 #256                 # Dimension of the feedforward network
+      dropout: 0.1              # Dropout rate
+      fc_dropout: 0.1           # Dropout rate for the fully connected layer
+      attn_dropout: 0.1         # Dropout rate for attention weights
+      activation: "gelu"        # Activation function
+      res_attention: True       # Use residual attention
+      pe: "zeros"               # Type of positional encoding
+      learn_pe: True            # Whether the positional encoding is learnable
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

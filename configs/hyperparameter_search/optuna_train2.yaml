@@ -1,0 +1,174 @@
+################################################################################
+# SINGLE YAML CONFIG FOR DATA, MODEL, TRAINER, CALLBACKS, ETC.
+################################################################################
+
+# Seed, training toggles, etc.
+seed: 42
+train: true
+test: true
+compile: false
+ckpt_path: null
+
+################################################################################
+# DATA CONFIG
+################################################################################
+data:
+  _target_: src.data.multitask_datamodule.MultiTaskDataModule
+  data_dir: /home/hpc/iwfa/iwfa110h/Uddipan/AI-FAPS_Vishnudev_Krishnadas/data/LinearWinding/dataset_linear_winding_multimodal
+  csv_filename_trainval: "labels_and_metadata_coil_level_train_val_2023-09-15.CSV"
+  csv_filename_test: "labels_and_metadata_coil_level_test_2023-09-15.CSV"
+
+  coil_images_indices:
+    - 957
+    - 958
+    - 959
+    - 960
+
+  coil_force_column: "force"
+  class_label_column: "label_geom_error_overall"
+  regression_label_column: "label_dc_resistance"
+
+  batch_size: 8
+  val_split: 0.2
+  num_workers: 4
+
+  downsample_factor: 4
+  num_force_layers: 5
+  force_augment: true
+  force_augment_times: 1
+  force_noise_magnitude: 0.1
+
+  material_batch: 1
+
+  # Image transforms
+  image_transform_train:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.1
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 13
+      - _target_: torchvision.transforms.Normalize
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+
+  image_transform_val:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.Normalize
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+
+  image_transform_test:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.Normalize
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+
+################################################################################
+# MODEL CONFIG
+################################################################################
+model:
+  _target_: src.models.multitask_module.MultiTaskModule
+
+  # Fusion for images
+  fusion_type: "concat"
+  num_classes: 2
+
+  # Weighted losses
+  alpha_classification: 1.0
+  alpha_regression: 1.0
+
+  # Weighted metrics
+  weight_f1: 1.0
+  weight_r2: 1.0
+
+  # Modal sub-networks
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper #src.models.components.dino_v2_wrapper.DinoV2Wrapper #src.models.components.torchvision_wrapper.TorchVisionWrapper
+      model_name: densenet121 #dinov2_vitl14_reg
+      weights: "DEFAULT"
+      unfreeze_layer_count: 80
+      #dropout: 0.3
+
+    forces:
+      _target_: tsai.models.RNN.GRU #InceptionTimePlus.InceptionTimePlus
+      c_in: 5
+      c_out: 64
+      #nf: 32        #for IT and ITplus
+      #depth: 8     #for IT and ITplus
+      #bottleneck: true      #for IT and ITplus
+      hidden_size: 211 #for gru
+      n_layers: 1      #for gru
+      rnn_dropout: 0.06417718142436428     #for gru
+      bidirectional: false                 #for gru
+      fc_dropout: 0.0001036446690224832     #for gru
+      #coord: True        #for rescnn
+      #separable: True    #for rescnn
+      #zero_norm: false   #for rescnn
+
+  # Optimizer
+  optimizer_cfg:
+    _target_: torch.optim.Adam
+    _partial_: true
+    lr: 0.001
+    weight_decay: 1e-6
+
+  # Scheduler
+  scheduler_cfg:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    _partial_: true
+    mode: "min"
+    factor: 0.3
+    patience: 5
+
+################################################################################
+# TRAINER CONFIG
+################################################################################
+trainer:
+  default_root_dir: "logs"
+  min_epochs: 50
+  max_epochs: 75
+  accelerator: "gpu"
+  devices: 1
+  precision: "16-mixed"
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 50
+  deterministic: false
+  enable_checkpointing: false
+
+################################################################################
+# CALLBACKS CONFIG
+################################################################################
+callbacks:
+  early_stopping:
+    monitor: "val/loss"
+    patience: 50
+    mode: "min"
+
+  model_summary:
+    max_depth: 2
+
+  lr_monitor: {}  # no args
+
+################################################################################
+# LOGGER CONFIG
+################################################################################
+logger: null

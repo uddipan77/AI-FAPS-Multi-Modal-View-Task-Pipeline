@@ -1,0 +1,96 @@
+# @package _global_
+
+# To execute this experiment run:
+# python train.py experiment=mm_dino_xresnet_image_force
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from default configurations set above
+# This allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "mm_dino_xresnet", "image", "dino_v2", "force", "xresnet1d", "batch2"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 250  # Increased to accommodate XResNet1d's requirement
+  gradient_clip_val: 0.5  # Chosen as a compromise between DINOv2 and XResNet1d
+
+model:
+
+  optimizer:
+    lr: 0.0005  # Using DINOv2's learning rate as it's generally more sensitive
+    weight_decay: 0.0001  # Using DINOv2's weight decay
+
+  scheduler:
+    factor: 0.1
+    patience: 10  # Averaged between DINOv2 (no patience specified) and XResNet1d's patience=15
+
+  use_modalities:
+    - images
+    - forces
+
+  modal_nets:
+    images:
+      _target_: src.models.components.dino_v2_wrapper.DinoV2Wrapper
+      model_name: dinov2_vitl14  # Updated model name for torch.hub DINOv2
+      unfreeze_layer_count: 12
+      
+
+    forces:
+      _target_: tsai.models.XResNet1d.xresnet1d152  # Using XResNet1d-152
+      c_in: 1
+      c_out: 2
+      # Optional: You can specify activation or other parameters if needed
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 322, 322]  # As per DINOv2's requirement
+    forces: 
+      type: list
+      length: 5
+      shape: [5, 1, 11524]  # Corrected to match XResNet1d's input shape
+
+data:
+  batch_size: 8  # Using the higher batch size from the original multimodal setup
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.Resize
+        size: 322  # From DINOv2's transform
+      - _target_: torchvision.transforms.CenterCrop
+        size: 322  # Final crop to match original image size
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048  # Averaged std from both DINOv2 (0.05) and original (0.048)
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19  # Averaged kernel size between DINOv2 (21) and original (19)
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"
+  aim:
+    experiment: "mm_dino_xresnet_image_force"

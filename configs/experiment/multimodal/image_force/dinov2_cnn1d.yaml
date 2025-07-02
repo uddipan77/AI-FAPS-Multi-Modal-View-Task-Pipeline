@@ -1,0 +1,100 @@
+# @package _global_
+
+# To execute this experiment run:
+# python train.py experiment=mm_dino_tiny_image_force
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from default configurations set above
+# This allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "mm_dino_tiny", "image", "dino_v2_large", "force", "tiny", "batch2"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150  # From both DINOv2 and Tiny configurations
+  gradient_clip_val: 0.5  # From both configurations
+
+model:
+
+  optimizer:
+    lr: 0.0003  # Averaged between DINOv2's lr=0.0005 and Tiny's lr=0.0001
+    weight_decay: 0.000055  # Averaged between DINOv2's wd=0.0001 and Tiny's wd=0.00001
+
+  scheduler:
+    factor: 0.1  # Both DINOv2 and Tiny use factor=0.1
+    patience: 7  # Averaged between DINOv2's patience=10 and Tiny's patience=4
+
+  use_modalities:
+    - images
+    - forces
+
+  modal_nets:
+    images:
+      _target_: src.models.components.dino_v2_wrapper.DinoV2Wrapper
+      model_name: dinov2_vitl14_reg  # As per your DINOv2 configuration
+      unfreeze_layer_count: 5
+
+    forces:
+      _target_: src.models.components.cnn1d_tiny.CNN1DTiny
+      input_size: 11524
+      in_channels: 1
+      hidden_channels:
+        - 64
+        - 64
+        - 32
+      output_size: 2
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 322, 322]  # From DINOv2 YAML
+    forces:
+      type: list
+      length: 5
+      shape: [1, 1, 11524]  # From Tiny YAML
+
+data:
+  batch_size: 8  # As per both configurations
+
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.Resize
+        size: 322  # From DINOv2's transform
+      - _target_: torchvision.transforms.CenterCrop
+        size: 322  # From DINOv2's transform
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048  # Averaged std from DINOv2 (0.05) and Tiny (0.0000, negligible)
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19  # Averaged kernel size between DINOv2 (21) and Tiny (19)
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"
+  aim:
+    experiment: "mm_dino_tiny_image_force"

@@ -1,0 +1,54 @@
+# @package _global_
+
+# to execute this experiment run:
+# python src/train.py experiment=unimodal/force/rocket
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+tags: ["linear_winding", "rocket", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+  optimizer:
+    lr: 0.00001
+    weight_decay: 1e-6
+
+  scheduler:
+    factor: 0.1
+    patience: 5
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: src.models.components.rocket_wrapper.RocketWrapper
+      num_kernels: 10000
+      normalize_input: True
+      alphas: [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+      normalize_features: True
+      random_state: 42
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

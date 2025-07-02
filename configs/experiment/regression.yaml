@@ -1,0 +1,30 @@
+# @package _global_
+# To execute this experiment, run:
+# python src/train.py experiment=unimodal/force/regression
+
+defaults:
+  - override /data: regression_data.yaml
+  - override /model: regression_model.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+tags: ["regression_task", "ResCNN"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 100
+
+model:
+  optimizer:
+    lr: 0.009889521176180244
+    weight_decay: 0.0009377397108070718
+  scheduler:
+    factor: 0.30328036943732606
+    patience: 3
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

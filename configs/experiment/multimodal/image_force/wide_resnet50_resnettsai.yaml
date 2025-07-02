@@ -1,0 +1,80 @@
+# @package _global_
+
+# To execute this experiment run:
+# python train.py experiment=mm_wideresnet_resnettsai_image_force
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# Tags to categorize and identify the experiment
+tags: ["linear_winding", "multimodal", "mm_wideresnet_resnettsai", "image", "wide_resnet50", "forces", "ResNetTsai"]
+
+# Seed for reproducibility
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 250
+  gradient_clip_val: 0.5
+
+model:
+  # Optimizer configuration applicable to the entire model
+  optimizer:
+    _target_: torch.optim.Adam  # Specify the optimizer class
+    lr: 0.0001
+    weight_decay: 1e-5
+
+  # Scheduler configuration applicable to the entire model
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau  # Scheduler class
+    _partial_: true  # Indicates that additional parameters will be passed during instantiation
+    mode: min  # Change to 'min' if monitoring a metric to minimize
+    factor: 0.1
+    patience: 10
+
+  # Define the modalities used in the model
+  use_modalities:
+    - images
+    - forces
+
+  # Define the network architectures for each modality
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper  # Adjust the path as necessary
+      model_name: wide_resnet50_2
+      weights: DEFAULT  # Use 'DEFAULT' or specify a path to pretrained weights
+      unfreeze_layer_count: 20
+      
+
+    forces:
+      _target_: tsai.models.ResNet.ResNet  # Adjust the path to where your ResNet class is located
+      c_in: 1  # Number of input channels for the force modality
+      c_out: 2  # Number of output channels/classes
+
+  # Define dummy inputs for each modality to facilitate model building
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 320, 320]  # [batch_size, channels, height, width]
+
+    forces: 
+      type: list
+      length: 5
+      shape: [5, 1, 11524]  # [batch_size, channels, features]
+
+data:
+  batch_size: 8  # Combined batch size for multimodal training
+  seed: ${seed}  # Inherit the global seed value
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"  # Group name for organizing runs in Weights & Biases
+  aim:
+    experiment: "mm_wideresnet_resnettsai_image_force"  # Experiment name for AIM logger
+
+# Optional: Add any additional configurations or overrides below

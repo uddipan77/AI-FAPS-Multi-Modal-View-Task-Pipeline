@@ -1,0 +1,22 @@
+_target_: src.models.GRU_regressionmodel.GRURegressionModel
+
+input_dim: 5
+output_dim: 1
+hidden_size: 211
+n_layers: 1
+bias: true
+rnn_dropout: 0.06417718142436428
+bidirectional: true
+fc_dropout: 0.0001036446690224832
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0001
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 5

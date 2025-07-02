@@ -1,0 +1,63 @@
+# @package _global_
+
+# to execute this experiment run:
+# python src/train.py experiment=unimodal/force/transformer_lstm_plus
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "transformer_lstm_plus", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+  optimizer:
+    lr: 0.00000001
+    weight_decay: 1e-6
+
+  scheduler:
+    factor: 0.01
+    patience: 10
+
+  use_modalities:
+    - forces
+  
+  modal_nets:
+    forces:
+      _target_: tsai.models.TransformerRNNPlus.TransformerLSTMPlus
+      c_in: 1
+      c_out: 2 #32
+      seq_len: 11524
+      d_model: 128
+      nhead: 8
+      proj_dropout: 0.1
+      num_encoder_layers: 2
+      dim_feedforward: 512
+      dropout: 0.1
+      num_rnn_layers: 2
+      bidirectional: True
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

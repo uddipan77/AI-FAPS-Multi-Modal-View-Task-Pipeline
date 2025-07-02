@@ -1,0 +1,22 @@
+# @package _global_
+# Example: run as: python train.py experiment=multitask_experiment.yaml
+
+defaults:
+  - override /data: multitask_multimodal.yaml
+  - override /model: multitask_multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+tags: ["multi_task", "multimodal", "multiview", "densenet", "rescnn"]
+seed: 42
+
+trainer:
+  min_epochs: 50
+  max_epochs: 250
+  gradient_clip_val: 0.5
+
+# If you want to pick which metric to checkpoint on
+# e.g. using "val/f1" or "val/loss" or "val/r2" 
+# Then in /callbacks/default.yaml you can override
+# model_checkpoint.monitor: "val/f1"
+# model_checkpoint.mode: "max"

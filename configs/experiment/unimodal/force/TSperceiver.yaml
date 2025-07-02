@@ -1,0 +1,68 @@
+# @package _global_
+
+# Run this experiment with:
+# python src/train.py experiment=unimodal/force/tsperceiver
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "tsperceiver", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.00000001
+    weight_decay: 1e-7
+
+  scheduler:
+    factor: 0.01
+    patience: 15
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: tsai.models.TSPerceiver.TSPerceiver
+      c_in: 1               # Number of input channels
+      c_out: 2              # Number of output classes
+      seq_len: 11524        # Length of the input sequence
+      n_latents: 512        # Number of latent array elements
+      d_latent: 128         # Dimension of each latent element
+      d_context: 128        # Dimension of context, should match d_latent if unspecified
+      n_layers: 6           # Number of cross-attention layers
+      self_per_cross_attn: 1
+      share_weights: True   # Whether to share weights across cross-attention layers
+      cross_n_heads: 1      # Number of heads for cross-attention
+      self_n_heads: 8       # Number of heads for latent transformer
+      d_head: null          # Dimension of each attention head; defaults to d_context / n_heads if unspecified
+      attn_dropout: 0.0     # Dropout rate for attention layers
+      fc_dropout: 0.0       # Dropout rate for fully connected layers
+      concat_pool: False    # Whether to use concatenated pooling in the output head
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 16
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

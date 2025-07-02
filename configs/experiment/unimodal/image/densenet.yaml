@@ -1,0 +1,87 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=mm_densenet_image
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default2.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "image", "densenet"]
+
+seed: 42
+
+trainer:
+  min_epochs: 50
+  max_epochs: 250
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 0.0031440671264754733
+    weight_decay: 0.00001
+
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau 
+    _partial_: true
+    mode: min
+    factor: 0.1
+    patience: 10 
+
+  use_modalities:
+    - images
+  
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper
+      model_name: densenet201
+      weights: DEFAULT
+      unfreeze_layer_count: 80
+      drop_rate: 0.016546499204271724 #0.065
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 320, 320]
+
+data:
+  batch_size: 32
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.048
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

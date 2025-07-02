@@ -1,0 +1,21 @@
+_target_: src.models.InceptionTimePlus_regressionmodel.InceptionTimePlusRegressionModel
+
+input_dim: 5
+output_dim: 1
+seq_len: 2881
+nf: 32
+depth: 6
+bottleneck: true
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0017220161173275245
+  weight_decay: 1.1760628613002881e-08
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1911570553246063
+  patience: 4

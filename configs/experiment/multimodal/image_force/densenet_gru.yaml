@@ -1,0 +1,134 @@
+# @package _global_
+
+# To execute this experiment run:
+# python train.py experiment=mm_densenet_gru_image_force
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default2.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from default configurations set above
+# This allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "mm_densenet_gru", "image", "densenet", "force", "gru"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150  # Both DenseNet and GRU configurations have max_epochs=150
+  gradient_clip_val: 0.5  # Both configurations have gradient_clip_val=0.5
+
+model:
+
+  optimizer:
+    lr: 0.00055  # Averaged between DenseNet's lr=0.001 and GRU's lr=0.0001
+    weight_decay: 5.5e-6  # Averaged between DenseNet's wd=0.00001 and GRU's wd=1e-6
+
+  scheduler:
+    factor: 0.055  # Averaged between DenseNet's factor=0.1 and GRU's factor=0.01
+    patience: 10  # Averaged between DenseNet's patience=4 and GRU's patience=15
+
+  use_modalities:
+    - images
+    - forces
+
+  modal_nets:
+    images:
+      _target_: src.models.components.torchvision_wrapper.TorchVisionWrapper
+      model_name: densenet121
+      weights: DEFAULT
+      unfreeze_layer_count: 100
+      drop_rate: 0.065
+
+    forces:
+      _target_: tsai.models.RNN.GRU
+      c_in: 1
+      c_out: 32
+      # seq_len: 11524  # Optional: Define if required by the GRU implementation
+
+  classifier:
+    _target_: src.models.components.late_fusion.LateFusion
+    _partial_: true
+    fusion_type: concat
+    fusion_dim: 1
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 320, 320]  # From DenseNet YAML
+    forces:
+      type: list
+      length: 5
+      shape: [1, 1, 11524]  # From GRU YAML
+
+data:
+  batch_size: 16  # Averaged between DenseNet's batch_size=32 and GRU's batch_size=8
+
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320  # From DenseNet YAML
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.025  # Averaged std from DenseNet (0.048) and GRU (assumed negligible)
+        same_on_batch: true
+        keepdim: true
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 19  # Both DenseNet and GRU use kernel_size=19
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+  val_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+  test_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.CenterCrop
+        size: 320
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"
+  aim:
+    experiment: "mm_densenet_gru_image_force"

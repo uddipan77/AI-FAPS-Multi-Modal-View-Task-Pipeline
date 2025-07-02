@@ -1,0 +1,23 @@
+defaults:
+  - model_checkpoint.yaml
+  - early_stopping.yaml
+  - model_summary.yaml
+  - rich_progress_bar.yaml
+  - lr_monitor.yaml
+  - _self_
+
+model_checkpoint:
+  dirpath: /home/vault/iwfa/iwfa110h/runs_uddipan2 #${paths.output_dir}/checkpoints ##/home/vault/iwfa/iwfa110h/runs_vishnu
+  filename: "epoch_{epoch:03d}"
+  monitor: "val/weighted_f1_r2" #use "val/f1" for regression
+  mode: "max" #use "max" for regression
+  save_last: True
+  auto_insert_metric_name: False
+
+early_stopping:
+  monitor: "val/loss" #use "val/f1" for regression
+  patience: 50
+  mode: "min"
+
+model_summary:
+  max_depth: 2

@@ -1,0 +1,29 @@
+_target_: src.models.multimodal_module.MultiModalModule
+
+optimizer:
+  _target_: torch.optim.AdamW #Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+use_modalities:
+  - images
+  - forces
+
+modal_nets:
+  images:
+    _target_: src.models.components.simple_cnn.SimpleConvNeuralNet
+
+classifier:
+  _target_: src.models.components.late_fusion.LateFusion
+  _partial_: true
+  fusion_type: concat
+  fusion_dim: 1
+

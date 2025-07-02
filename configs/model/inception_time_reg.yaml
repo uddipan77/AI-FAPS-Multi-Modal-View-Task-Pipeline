@@ -1,0 +1,21 @@
+_target_: src.models.InceptionTime_regressionmodel.InceptionTimeRegressionModel
+
+input_dim: 5
+output_dim: 1
+seq_len: 2881
+nf: 32
+depth: 8
+bottleneck: true
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0017978167203413753
+  weight_decay: 1.2008655242742152e-09
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.8358284602577417
+  patience: 5

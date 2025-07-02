@@ -1,0 +1,82 @@
+# File: configs/hparams_search/wandb_sweep/multitask/multitask_sweep.yaml
+
+name: multitask_sweep_densenet_rescnn
+
+program: src/train.py
+
+project: ai-faps-project
+
+method: bayes  # or random, grid, hyperband, etc.
+
+# We'll optimize your single combined metric that you log as "val/weighted"
+metric:
+  name: val/weighted_f1_r2
+  goal: maximize
+
+parameters:
+  # 1) Which optimizer to use
+  model.optimizer_cfg._target_:
+    values: [torch.optim.Adam, torch.optim.AdamW, torch.optim.SGD]
+
+  # 2) Learning rate
+  model.optimizer_cfg.lr:
+    distribution: uniform
+    min: 1e-6
+    max: 1e-2
+
+  # 3) Weight decay
+  model.optimizer_cfg.weight_decay:
+    distribution: uniform
+    min: 1e-9
+    max: 1e-4
+
+  # 4) Densenet unfreeze
+  model.modal_nets.images.unfreeze_layer_count:
+    distribution: int_uniform
+    min: 0
+    max: 200
+
+  # 5) Weighted loss factors for classification vs. regression
+  model.alpha_classification:
+    distribution: uniform
+    min: 1.0
+    max: 5.0
+  model.alpha_regression:
+    distribution: uniform
+    min: 1.0
+    max: 5.0
+
+  # 6) Weighted metric scalars, if you'd like to tune them, else remove these:
+  model.weight_f1:
+    distribution: uniform
+    min: 0.0
+    max: 1.0
+  model.weight_r2:
+    distribution: uniform
+    min: 0.0
+    max: 1.0
+
+  # 7) Data batch size
+  data.batch_size:
+    values: [4, 8, 16]
+
+  # 8) If you want to tune ReduceLROnPlateau factor/patience
+  model.scheduler_cfg.factor:
+    distribution: uniform
+    min: 0.1
+    max: 0.9
+  model.scheduler_cfg.patience:
+    values: [2, 4, 6, 8]
+
+early_terminate:
+  type: hyperband
+  eta: 2
+  min_iter: 5
+
+command:
+  - ${interpreter}
+  - ${program}
+  - experiment=multitask/multitask_experiment.yaml
+  - ${args_no_hyphens}
+  - trainer=gpu
+  - logger=wandb

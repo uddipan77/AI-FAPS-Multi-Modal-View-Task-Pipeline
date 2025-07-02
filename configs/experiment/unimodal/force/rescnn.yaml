@@ -1,0 +1,55 @@
+# @package _global_
+
+# To execute this experiment run:
+# python src/train.py experiment=unimodal/force/rescnn
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+tags: ["linear_winding", "ResCNN", "force", "batch2"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 250
+  gradient_clip_val: 0.05
+
+model:
+
+  optimizer:
+    lr: 0.001
+    weight_decay: 0.00001
+
+  scheduler:
+    factor: 0.1
+    patience: 12
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: tsai.models.ResCNN.ResCNN
+      c_in: 1
+      c_out: 16
+      coord: false
+      separable: false
+      zero_norm: false
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]  # Adjust `11524` to the sequence length of your data
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

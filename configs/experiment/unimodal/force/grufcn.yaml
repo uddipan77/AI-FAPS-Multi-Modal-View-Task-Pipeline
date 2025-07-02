@@ -1,0 +1,65 @@
+# @package _global_
+
+# to execute this experiment run:
+# python src/train.py experiment=unimodal/force/grufcn
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default2.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "gru", "force", "batch1"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.0001
+    weight_decay: 1e-6
+
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau 
+    _partial_: true
+    mode: min
+    factor: 0.1
+    patience: 10
+
+  use_modalities:
+    - forces
+  
+  modal_nets:
+
+    forces:
+      _target_: tsai.models.RNN.GRU #MGRU_FCN
+      c_in: 1
+      c_out: 32
+      hidden_size: 211 #for gru
+      n_layers: 1      #for gru
+      rnn_dropout: 0.06417718142436428     #for gru
+      bidirectional: false                 #for gru
+      fc_dropout: 0.0001036446690224832    #for gru
+      #seq_len: 11524
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]
+
+data:
+  batch_size: 8
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

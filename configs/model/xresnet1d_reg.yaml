@@ -1,0 +1,18 @@
+_target_: src.models.XResNet1d_regressionmodel.XResNet1dRegressionModel
+
+input_dim: 5
+output_dim: 1
+model_depth: xresnet1d50_deep
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001979856718837221
+  weight_decay: 2.1322426825670016e-09
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.13320178125190263
+  patience: 4

@@ -1,0 +1,75 @@
+_target_: src.data.linear_winding_datamodule.LinearWindingDataModule
+data_dir: ${paths.data_dir}LinearWinding/dataset_linear_winding_multimodal
+coil_images_indices:
+  - 957
+  - 958
+  - 959
+  - 960
+coil_force_columns:
+  - force
+batch_size: 64
+train_val_split:
+  - 0.80
+  - 0.20
+num_workers: 8
+pin_memory: True
+copy_data: False
+overwrite: False
+
+train_transforms:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 322
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: kornia.augmentation.RandomGaussianNoise
+      mean: 0.0
+      std: 0.1
+      same_on_batch: True
+      keepdim: True
+    - _target_: torchvision.transforms.RandomApply
+      p: 0.5
+      transforms:
+        - _target_: torchvision.transforms.GaussianBlur
+          kernel_size: 13
+    - _target_: torchvision.transforms.Normalize
+      mean:
+        - 0.5
+        - 0.5
+        - 0.5
+      std:
+        - 0.5
+        - 0.5
+        - 0.5
+
+val_transforms:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 322
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: torchvision.transforms.Normalize
+      mean:
+        - 0.5
+        - 0.5
+        - 0.5
+      std:
+        - 0.5
+        - 0.5
+        - 0.5
+
+test_transforms:
+  _target_: torchvision.transforms.Compose
+  transforms:
+    - _target_: torchvision.transforms.CenterCrop
+      size: 322
+    - _target_: torchvision.transforms.ToTensor
+    - _target_: torchvision.transforms.Normalize
+      mean:
+        - 0.5
+        - 0.5
+        - 0.5
+      std:
+        - 0.5
+        - 0.5
+        - 0.5

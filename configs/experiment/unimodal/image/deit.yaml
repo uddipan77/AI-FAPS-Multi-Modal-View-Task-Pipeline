@@ -1,0 +1,81 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=mm_deit_base_image
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["linear_winding", "image", "deit_base"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+
+  optimizer:
+    lr: 0.0005
+    weight_decay: 0.0001
+
+  scheduler:
+    factor: 0.1
+
+  use_modalities:
+    - images
+  
+  modal_nets:
+    images:
+      _target_: src.models.components.deit_wrapper.DeitWrapper
+      model_name: deit_base_distilled_patch16_224  # Specify the DeiT model here
+      unfreeze_layer_count: 12
+
+  modality_dummy_inputs:
+    images:
+      type: list
+      length: 4
+      shape: [4, 3, 224, 224]  # Default image size for DeiT is 224x224
+
+data:
+  batch_size: 16
+  train_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.Resize
+        size: 224  # Resize slightly larger for cropping
+      - _target_: torchvision.transforms.CenterCrop
+        size: 224
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: kornia.augmentation.RandomGaussianNoise
+        mean: 0.0
+        std: 0.05
+        same_on_batch: True
+        keepdim: True
+      - _target_: torchvision.transforms.RandomApply
+        p: 0.5
+        transforms:
+          - _target_: torchvision.transforms.GaussianBlur
+            kernel_size: 21
+      - _target_: torchvision.transforms.Normalize
+        mean:
+          - 0.5
+          - 0.5
+          - 0.5
+        std:
+          - 0.5
+          - 0.5
+          - 0.5
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"

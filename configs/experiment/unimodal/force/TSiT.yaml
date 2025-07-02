@@ -1,0 +1,83 @@
+# @package _global_
+
+# To execute this experiment, run:
+# python src/train.py experiment=unimodal/force/tsitplus
+
+defaults:
+  - override /data: linear_winding.yaml
+  - override /model: multimodal.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: default.yaml
+
+# All parameters below will be merged with parameters from the default configurations set above.
+# This allows you to overwrite only specified parameters.
+
+tags: ["linear_winding", "tsitplus", "force"]
+
+seed: 42
+
+trainer:
+  min_epochs: 1
+  max_epochs: 150
+  gradient_clip_val: 0.5
+
+model:
+  optimizer:
+    lr: 0.0001
+    weight_decay: 0.00001
+
+  scheduler:
+    factor: 0.1
+    patience: 4
+
+  use_modalities:
+    - forces
+
+  modal_nets:
+    forces:
+      _target_: tsai.models.TSiTPlus.TSiTPlus
+      c_in: 1                      # Number of input channels/features
+      c_out: 16                    # Number of output classes
+      seq_len: 11524               # Length of the input sequence
+      d_model: 32                 # Model dimension
+      depth: 2                     # Number of encoder layers
+      n_heads: 4                  # Number of attention heads
+      act: "gelu"                  # Activation function
+      lsa: False                   # Use Locality Self-Attention
+      attn_dropout: 0.1            # Dropout rate for attention weights
+      dropout: 0.1                 # Dropout rate
+      drop_path_rate: 0.0          # Drop path rate
+      mlp_ratio: 1                 # MLP ratio
+      qkv_bias: True               # Use bias in QKV projections
+      pre_norm: False              # Use pre-normalization
+      use_token: False             # Use classification token
+      use_pe: True                 # Use positional encoding
+      n_cat_embeds: null           # Number of categories for categorical embeddings (if any)
+      cat_embed_dims: null         # Embedding dimensions for categorical embeddings
+      cat_padding_idxs: null       # Padding indices for categorical embeddings
+      cat_pos: null                # Positions of categorical variables
+      token_size: null             # Token size (for tokenization)
+      tokenizer: null              # Custom tokenizer (if any)
+      feature_extractor: null      # Custom feature extractor (if any)
+      flatten: False               # Flatten the output
+      concat_pool: True            # Use concatenated pooling
+      fc_dropout: 0.1              # Dropout rate for the fully connected layer
+      use_bn: False                # Use batch normalization in the head
+      bias_init: null              # Bias initialization for the output layer
+      y_range: null                # Output range for regression tasks
+      custom_head: null            # Custom head (if any)
+      verbose: True                # Verbose output
+
+  modality_dummy_inputs:
+    forces: 
+      type: list
+      length: 5
+      shape: [1, 1, 11524]         # Adjust according to your input shape
+
+data:
+  batch_size: 4
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "linear_winding"
